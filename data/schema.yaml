@@ -1,0 +1,44 @@
+tables:
+  customers:
+    description: Müşteri bilgilerini içeren tablo
+    columns:
+      customer_id:
+        description: Müşteri kimliği
+        type: numeric
+        example: 1001
+      city:
+        description: Yaşanılan şehir
+        type: nominal
+        example: İstanbul
+      segment:
+        description: Müşteri segmenti
+        type: nominal
+        example: Bireysel
+      credit_tier:
+        description: Kredi notu seviyesi (1 düşük - 5 yüksek)
+        type: ordinal
+        example: 4
+      income:
+        description: Yıllık gelir
+        type: numeric
+        example: 120000
+
+  sales:
+    description: Aylık satış verilerini içeren tablo
+    columns:
+      customer_id:
+        description: Müşteri kimliği (ilişkili tablo: customers)
+        type: numeric
+        example: 1001
+      month:
+        description: Satış yapılan ay (YYYY-MM)
+        type: nominal
+        example: 2024-07
+      purchases:
+        description: Aylık alışveriş sayısı
+        type: numeric
+        example: 3
+      amount:
+        description: Aylık toplam harcama
+        type: numeric
+        example: 450.5
