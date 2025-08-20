@@ -49,11 +49,12 @@ for customer in df_customers.itertuples():
     sampled_months = random.sample(months, num_months)
 
     for month in sampled_months:
+        purchases = random.randint(1, 5)
         sales.append({
             "customer_id": customer.customer_id,
             "month": month,
             "purchases": random.randint(1, 5),
-            "amount": round(random.uniform(100, 1000), 2)
+            "amount": round(purchases * random.uniform(100, 250), 2)
         })
 
 df_sales = pd.DataFrame(sales)
