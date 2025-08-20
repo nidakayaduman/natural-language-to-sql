@@ -32,7 +32,7 @@ tables:
         example: 1001
       month:
         description: Satış yapılan ay (YYYY-MM)
-        type: nominal
+        type: date
         example: 2024-07
       purchases:
         description: Aylık alışveriş sayısı
