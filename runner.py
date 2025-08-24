@@ -1,5 +1,4 @@
 import duckdb
-import pandas as pd
 import os
 
 class SQLRunner:
@@ -20,13 +19,18 @@ class SQLRunner:
 
             # Eğer tablo yoksa CSV'den otomatik yükle
             existing_tables = self.conn.execute("SHOW TABLES").fetchdf()["name"].tolist()
+
             if "customers" not in existing_tables:
-                customers_df = pd.read_csv("data/customers.csv")
-                self.conn.execute("CREATE TABLE customers AS SELECT * FROM customers_df")
+                self.conn.execute("""
+                    CREATE TABLE customers AS 
+                    SELECT * FROM read_csv_auto('data/customers.csv', HEADER=TRUE)
+                """)
 
             if "sales" not in existing_tables:
-                sales_df = pd.read_csv("data/sales.csv")
-                self.conn.execute("CREATE TABLE sales AS SELECT * FROM sales_df")
+                self.conn.execute("""
+                    CREATE TABLE sales AS 
+                    SELECT * FROM read_csv_auto('data/sales.csv', HEADER=TRUE)
+                """)
 
     def execute_query(self, query: str):
         """
