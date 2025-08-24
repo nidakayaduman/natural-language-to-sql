@@ -1,6 +1,8 @@
 import os
 import openai
 from dotenv import load_dotenv
+from guardrails import validate_sql
+from runner import run_query
 
 # .env dosyasindaki API key'i yukle
 load_dotenv()
@@ -79,14 +81,24 @@ def build_prompt(user_question: str) -> str:
 def generate_sql(user_question: str) -> str:
     prompt = build_prompt(user_question)
     response = openai.ChatCompletion.create(
-        model="google/gemma-3-12b-it:free",  
+        model="google/gemma-3-12b-it:free",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
         ],
         temperature=0
     )
-    return response["choices"][0]["message"]["content"].strip()
+
+    sql = response["choices"][0]["message"]["content"].strip()
+
+    # Guardrails ile SQL doğrulaması
+    try:
+        validate_sql(sql)
+    except ValueError as e:
+        return f"❌ Geçersiz SQL: {e}"
+
+    return sql
+
 
 # Konsoldan soru alir
 if __name__ == "__main__":

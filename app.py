@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 from nl2sql import generate_sql  
+from guardrails import validate_sql
+from runner import SQLRunner 
+
 st.set_page_config(
     page_title="Chat With Nida's Bot",
     layout="centered",
@@ -44,8 +47,6 @@ st.markdown("""
         padding: 0.75rem;
         font-size: 1rem;
     }
-    
-    /* Ana buton stili (Cevabı Göster) */
     .stButton button {
         background: linear-gradient(to right, #ff6e7f, #bfe9ff);
         color: black;
@@ -55,8 +56,6 @@ st.markdown("""
         font-size: 1rem;
         border: none;
     }
-    
-    /* Örnek butonlar için özel stil */
     .stButton:nth-of-type(1) button,
     .stButton:nth-of-type(2) button,
     .stButton:nth-of-type(3) button {
@@ -79,8 +78,6 @@ st.markdown("""
         align-items: center !important;
         justify-content: center !important;
     }
-    
-    /* Hover efekti */
     .stButton:nth-of-type(1) button:hover,
     .stButton:nth-of-type(2) button:hover,
     .stButton:nth-of-type(3) button:hover {
@@ -88,16 +85,12 @@ st.markdown("""
         box-shadow: 0 8px 25px rgba(255, 110, 127, 0.4) !important;
         background: linear-gradient(135deg, #bfe9ff 0%, #764ba2 50%, #ff6e7f 100%) !important;
     }
-    
-    /* Active efekti */
     .stButton:nth-of-type(1) button:active,
     .stButton:nth-of-type(2) button:active,
     .stButton:nth-of-type(3) button:active {
         transform: translateY(-1px) !important;
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4) !important;
     }
-    
-    /* Ana buton (Cevabı Göster) için ayrı stil */
     .stButton:nth-of-type(4) button {
         background: linear-gradient(to right, #ff6e7f, #bfe9ff) !important;
         color: black !important;
@@ -107,7 +100,6 @@ st.markdown("""
         font-size: 1rem !important;
         border: none !important;
     }
-    
     .stDataFrame {
         font-size: 0.95rem;
     }
@@ -161,22 +153,25 @@ if st.button("Cevabı Göster"):
             try:
                 # 🔹 Modelden SQL üret
                 generated_sql = generate_sql(user_input)
-
-                # SQL göster
                 st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
                 st.code(generated_sql, language="sql")
 
-                # Dummy veri (Runner eklenince gerçek veri olacak)
-                st.markdown("<span style='color:#0097a7'><b>Sonuç (Örnek)</b></span>", unsafe_allow_html=True)
-                dummy_result = pd.DataFrame({
-                    "Şehir": ["Istanbul"],
-                    "Müşteri Tipi": ["KOBI"],
-                    "Toplam Harcama": [193280.40]
-                })
-                st.dataframe(dummy_result, use_container_width=True)
+                # 🔹 Guardrails + Runner ile gerçek sorgu çalıştır
+                
+               # 🔹 Guardrails kontrolü sadece güvenlik amaçlı
+                if not validate_sql(generated_sql):
+                    st.error("❌ Bu SQL sorgusu güvenli değil.")
+                else:
+                    runner = SQLRunner(db_path="data/database.duckdb")
+                    result_df = runner.execute_query(generated_sql)
+                # Sonuçları göster
+                    st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
+                    st.dataframe(result_df, use_container_width=True)
+
+                    runner.close()
 
             except Exception as e:
-                st.error(f"SQL üretimi sırasında hata oluştu: {e}")
+                st.error(f"❌ Hata: {e}")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
