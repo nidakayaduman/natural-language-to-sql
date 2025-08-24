@@ -16,7 +16,7 @@ tables:
         example: Bireysel
       credit_tier:
         description: Kredi notu seviyesi (1 düşük - 5 yüksek)
-        type: ordinal
+        type: numeric
         allowed_values: [1, 2, 3, 4, 5]
         example: 4
       income:
@@ -33,8 +33,8 @@ tables:
         example: 1001
       month:
         description: Satış yapılan ay (YYYY-MM)
-        type: date
-        example: 2024-07
+        type: string          
+        example: "2024-07"
       purchases:
         description: Aylık alışveriş sayısı
         type: numeric
