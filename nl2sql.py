@@ -7,7 +7,6 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.api_base = "https://openrouter.ai/api/v1"
 
-
 # Sistem mesaji
 SYSTEM_PROMPT = """\
 Sen yalnizca izinli sema uzerinde guvenli SQL SELECT sorgulari ureten bir NL→SQL yardimcisisin.
@@ -23,7 +22,6 @@ Kurallar:
 - JOIN gerektiginde kullanilmalidir.
 - Sorgunun sonunda ; olmalidir.
 - Tarih filtrelerinde month alanina gore yil bazli filtre istenirken LIKE 'YYYY-%' kalibini kullan.
-
 """
 
 # Ornek promptlar
@@ -33,7 +31,7 @@ Assistant:
 SELECT c.city, SUM(s.amount) AS total_amount
 FROM sales s
 JOIN customers c ON s.customer_id = c.customer_id
-WHERE s.month >= strftime('%Y-%m', date('now', '-6 months'))
+WHERE s.month >= '2024-03'
 GROUP BY c.city
 ORDER BY total_amount DESC
 LIMIT 10;
@@ -81,7 +79,7 @@ def build_prompt(user_question: str) -> str:
 def generate_sql(user_question: str) -> str:
     prompt = build_prompt(user_question)
     response = openai.ChatCompletion.create(
-        model="google/gemma-3-12b-it:free",
+        model="google/gemma-3-12b-it:free",  
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt}
