@@ -17,6 +17,7 @@ tables:
       credit_tier:
         description: Kredi notu seviyesi (1 düşük - 5 yüksek)
         type: ordinal
+        allowed_values: [1, 2, 3, 4, 5]
         example: 4
       income:
         description: Yıllık gelir
