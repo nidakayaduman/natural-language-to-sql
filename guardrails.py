@@ -1,10 +1,14 @@
 import sqlglot
 
+# İzin verilen segmentler ve tablolar
 ALLOWED_SEGMENTS = {"Bireysel", "KOBI", "Kurumsal"}
 ALLOWED_TABLES = {"CUSTOMERS", "SALES"}
 
 def fix_segments(sql: str) -> str:
-    """Yanlış segment isimlerini Türkçeye çevirir"""
+    """
+    Yanlış yazılan segment isimlerini Türkçeye çevirir.
+    Ör: 'individual' -> 'Bireysel'
+    """
     mapping = {
         "corporate": "Kurumsal",
         "individual": "Bireysel",
@@ -13,62 +17,69 @@ def fix_segments(sql: str) -> str:
         "kurumsal": "Kurumsal",
         "bireysel": "Bireysel"
     }
+
     for wrong, correct in mapping.items():
         sql = sql.replace(f"'{wrong}'", f"'{correct}'")
         sql = sql.replace(f'"{wrong}"', f"'{correct}'")
         sql = sql.replace(f"'{wrong.capitalize()}'", f"'{correct}'")
+
     return sql
+
 
 def validate_sql(sql: str):
     """
     SQL güvenlik kuralları:
     1. Sadece SELECT sorgularına izin ver.
     2. LIMIT 1000 zorunlu.
-    3. DROP, DELETE, UPDATE, INSERT yasak.
+    3. DROP, DELETE, UPDATE, INSERT, ALTER yasak.
     4. Sadece izinli tablolar kullanılabilir.
-    5. segment sadece 'Bireysel', 'KOBI', 'Kurumsal' olabilir.
+    5. Segment sadece 'Bireysel', 'KOBI', 'Kurumsal' olabilir.
     6. credit_tier sadece 1–5 arasında olmalı.
     """
+
     sql_upper = sql.upper()
 
-    # 1. Tehlikeli komutları parse etmeden engelle
+    # 1. Tehlikeli komutları kontrol et
     forbidden = {"DELETE", "UPDATE", "DROP", "INSERT", "ALTER"}
     for keyword in forbidden:
         if keyword in sql_upper:
             raise ValueError(f"❌ {keyword} komutuna izin verilmiyor!")
 
-    # 2. SELECT kontrolü
-    parsed = sqlglot.parse_one(sql, read="duckdb")
-    if parsed.key.upper() != "SELECT":
+    # 2. SQL'i parse et (DuckDB kullanıyoruz)
+    try:
+        parsed = sqlglot.parse_one(sql, read="duckdb")
+    except Exception as e:
+        raise ValueError(f"❌ SQL parse edilemedi: {str(e)}")
+
+    # 3. Sadece SELECT sorgularına izin ver
+    if not parsed or parsed.key.upper() != "SELECT":
         raise ValueError("❌ Sadece SELECT sorgularına izin veriliyor!")
 
-    # 3. LIMIT zorunlu
+    # 4. LIMIT 1000 zorunlu
     if "LIMIT" not in sql_upper:
         raise ValueError("❌ LIMIT eksik! Model promptunu veya SQL'i düzelt.")
-
-    # 4. İzinli tablo kontrolü
+    
+    # 5. İzinli tablolar dışında tablo kullanımı yasak
     used_tables = {t.name.upper() for t in parsed.find_all("Table")}
     if not used_tables.issubset(ALLOWED_TABLES):
-        raise ValueError("❌ İzinli tablolar dışında tablo kullanılamaz!")
+        raise ValueError(f"❌ İzinli tablolar dışında tablo kullanılamaz! "
+                         f"Kullanılan: {used_tables} | İzinli: {ALLOWED_TABLES}")
 
-    # 5. Segment doğrulama
-    for seg in parsed.find_all("Literal"):
-        if seg.this in ["Bireysel", "KOBI", "Kurumsal"]:
-            continue
-        if "SEGMENT" in sql_upper and seg.is_string and seg.this not in ALLOWED_SEGMENTS:
-            raise ValueError("❌ Segment sadece 'Bireysel', 'KOBI' veya 'Kurumsal' olabilir!")
+    # 6. Segment doğrulama (YANLIŞ girilenleri yakala)
+    for lit in parsed.find_all("Literal"):
+        # Sadece string literal olanlara bak
+        if isinstance(lit.this, str):
+            if "SEGMENT" in sql_upper and lit.this not in ALLOWED_SEGMENTS:
+                raise ValueError(
+                    f"❌ Segment değeri geçersiz! Geçerli segmentler: {ALLOWED_SEGMENTS}"
+                )
 
-    # 6. credit_tier doğrulama
+    # 7. credit_tier doğrulama (1 ile 5 arasında olmalı)
     if "CREDIT_TIER" in sql_upper:
         for lit in parsed.find_all("Literal"):
-        # Sadece sayısal değerleri kontrol et
-            try:
+            if str(lit.this).isdigit():
                 value = int(lit.this)
                 if value < 1 or value > 5:
                     raise ValueError("❌ credit_tier yalnızca 1 ile 5 arasında olmalı!")
-            except (ValueError, TypeError):
-                # Sayı değilse atla
-                continue
-
 
     return True
