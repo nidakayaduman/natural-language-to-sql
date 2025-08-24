@@ -13,6 +13,7 @@ tables:
       segment:
         description: Müşteri segmenti
         type: nominal
+        allowed_values: ["Bireysel", "KOBI", "Kurumsal"]
         example: Bireysel
       credit_tier:
         description: Kredi notu seviyesi (1 düşük - 5 yüksek)
