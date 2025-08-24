@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+from nl2sql import generate_sql  
 st.set_page_config(
     page_title="Chat With Nida's Bot",
     layout="centered",
@@ -145,29 +145,38 @@ with col3:
         st.session_state.user_input_value = "Kurumsal müşterilerin şehir bazlı harcama dağılımını göster"
 
 # Kullanıcı girişi
-user_input = st.text_area("Sorunuzu yazın:", height=90, placeholder="Örn: İstanbul'daki KOBİ müşterilerin toplam harcamasını göster.", value=st.session_state.user_input_value)
+user_input = st.text_area(
+    "Sorunuzu yazın:", 
+    height=90, 
+    placeholder="Örn: İstanbul'daki KOBİ müşterilerin toplam harcamasını göster.", 
+    value=st.session_state.user_input_value
+)
 
 # Buton ve sonuç
-display_sql = """SELECT city, segment, SUM(amount)
-FROM sales
-JOIN customers USING(customer_id)
-WHERE city = 'Istanbul' AND segment = 'KOBI'
-GROUP BY city, segment;"""
-
 if st.button("Cevabı Göster"):
     if not user_input.strip():
         st.warning("Lütfen bir soru girin.")
     else:
-        st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
-        st.code(display_sql, language="sql")
+        with st.spinner("SQL üretiliyor..."):
+            try:
+                # 🔹 Modelden SQL üret
+                generated_sql = generate_sql(user_input)
 
-        st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
-        dummy_result = pd.DataFrame({
-            "Şehir": ["Istanbul"],
-            "Müşteri Tipi": ["KOBI"],
-            "Toplam Harcama": [193280.40]
-        })
-        st.dataframe(dummy_result, use_container_width=True)
+                # SQL göster
+                st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
+                st.code(generated_sql, language="sql")
+
+                # Dummy veri (Runner eklenince gerçek veri olacak)
+                st.markdown("<span style='color:#0097a7'><b>Sonuç (Örnek)</b></span>", unsafe_allow_html=True)
+                dummy_result = pd.DataFrame({
+                    "Şehir": ["Istanbul"],
+                    "Müşteri Tipi": ["KOBI"],
+                    "Toplam Harcama": [193280.40]
+                })
+                st.dataframe(dummy_result, use_container_width=True)
+
+            except Exception as e:
+                st.error(f"SQL üretimi sırasında hata oluştu: {e}")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
