@@ -1,5 +1,6 @@
 import duckdb
 import os
+from guardrails import validate_sql, fix_segments
 
 class SQLRunner:
     def __init__(self, db_path: str = "data/database.duckdb", use_postgres=False, postgres_url=None):
@@ -33,20 +34,23 @@ class SQLRunner:
                 """)
 
     def execute_query(self, query: str):
-        """
-        Güvenli SQL çalıştırma fonksiyonu.
-        Guardrails sonrası gelen SQL'i alır, DataFrame döner.
-        """
-        # Yalnızca SELECT izinli
+        # Segmentleri düzelt
+        query = fix_segments(query)
+
+        # Guardrails ile SQL güvenlik kontrolü
+        validate_sql(query)
+
+        # Sadece SELECT’e izin ver
         if not query.strip().lower().startswith("select"):
             raise ValueError("❌ Sadece SELECT sorgularına izin veriliyor.")
 
+        # Sorguyu çalıştır
         try:
-            # Sorguyu çalıştır ve pandas DataFrame döndür
             result_df = self.conn.execute(query).fetchdf()
             return result_df
         except Exception as e:
             raise RuntimeError(f"❌ SQL çalıştırılamadı: {str(e)}")
+
 
     def close(self):
         """Bağlantıyı kapatır"""

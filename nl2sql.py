@@ -1,8 +1,9 @@
 import os
 import openai
 from dotenv import load_dotenv
-from guardrails import validate_sql, fix_segments  # fix_segments ekledik
+from guardrails import validate_sql, fix_segments
 from runner import SQLRunner
+
 
 # .env dosyasindaki API key'i yukle
 load_dotenv()
@@ -35,7 +36,7 @@ Kurallar:
 - Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
 """
 
-# Ornek promptlar
+# Örnek promptlar
 FEW_SHOT_EXAMPLES = """
 Kullanici: Kurumsal musterilerin toplam harcamasını şehir bazında göster.
 Assistant:
@@ -66,13 +67,14 @@ ORDER BY s.month
 LIMIT 1000;
 """
 
-# Kullanıcı sorusunu prompt'a ekler
+# Prompt'u hazırlar
 def build_prompt(user_question: str) -> str:
     return FEW_SHOT_EXAMPLES + f"\nKullanici: {user_question}\nAssistant:\n"
 
-# OpenAI ile SQL üretir
+# SQL üretir
 def generate_sql(user_question: str) -> str:
     prompt = build_prompt(user_question)
+
     response = openai.ChatCompletion.create(
         model="google/gemma-3-12b-it:free",
         messages=[
@@ -84,10 +86,10 @@ def generate_sql(user_question: str) -> str:
 
     sql = response["choices"][0]["message"]["content"].strip()
 
-    # Önce segment düzeltmesini uygula
+    # Segment düzeltmesi uygula
     sql = fix_segments(sql)
 
-    # Guardrails ile SQL doğrulaması
+    # Guardrails doğrulaması
     try:
         validate_sql(sql)
     except ValueError as e:
@@ -95,13 +97,27 @@ def generate_sql(user_question: str) -> str:
 
     return sql
 
+# Kullanıcı sorusunu çalıştırır → SQL + sonuç döner
+def answer_user_question(user_question: str):
+    sql = generate_sql(user_question)
 
-# Konsoldan soru alir
+    # Guardrails hata dönerse
+    if sql.startswith("❌"):
+        return sql, None
+
+    runner = SQLRunner()
+    try:
+        df = runner.execute_query(sql)
+        return sql, df
+    finally:
+        runner.close()
+
+# Konsol testi
 if __name__ == "__main__":
     while True:
-        q = input("Soru (cikmak icin q): ")
+        q = input("Soru (çıkmak için q): ")
         if q.lower() == "q":
             break
         sql = generate_sql(q)
-        print("\nUretilen SQL:\n", sql)
+        print("\nÜretilen SQL:\n", sql)
         print("-" * 80)
