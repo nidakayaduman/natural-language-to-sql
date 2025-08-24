@@ -2,7 +2,8 @@ import os
 import openai
 from dotenv import load_dotenv
 from guardrails import validate_sql
-from runner import run_query
+from runner import SQLRunner
+
 
 # .env dosyasindaki API key'i yukle
 load_dotenv()
