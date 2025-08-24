@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
-from nl2sql import generate_sql  
-from guardrails import validate_sql
-from runner import SQLRunner 
+from nl2sql import answer_user_question
+from runner import SQLRunner
 
 st.set_page_config(
     page_title="Chat With Nida's Bot",
@@ -149,26 +148,27 @@ if st.button("Cevabı Göster"):
     if not user_input.strip():
         st.warning("Lütfen bir soru girin.")
     else:
-        with st.spinner("SQL üretiliyor..."):
+        with st.spinner("SQL üretiliyor ve çalıştırılıyor..."):
             try:
-                # 🔹 Modelden SQL üret
-                generated_sql = generate_sql(user_input)
-                st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
-                st.code(generated_sql, language="sql")
+                # 🔹 SQL + Sonuç DataFrame al
+                generated_sql, result_df = answer_user_question(user_input)
 
-                # 🔹 Guardrails + Runner ile gerçek sorgu çalıştır
-                
-               # 🔹 Guardrails kontrolü sadece güvenlik amaçlı
-                if not validate_sql(generated_sql):
-                    st.error("❌ Bu SQL sorgusu güvenli değil.")
+                if result_df is None:
+                    st.error(generated_sql)  # Geçersiz SQL hatasını göster
                 else:
-                    runner = SQLRunner(db_path="data/database.duckdb")
-                    result_df = runner.execute_query(generated_sql)
-                # Sonuçları göster
+                    # SQL'i göster
+                    st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
+                    st.code(generated_sql, language="sql")
+
+                    # Tabloyu göster
                     st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
                     st.dataframe(result_df, use_container_width=True)
 
-                    runner.close()
+                    # Grafik ekle
+                    numeric_cols = result_df.select_dtypes(include=['int64', 'float64']).columns
+                    if len(numeric_cols) >= 1:
+                        first_num_col = numeric_cols[0]
+                        st.bar_chart(result_df.set_index(result_df.columns[0])[first_num_col])
 
             except Exception as e:
                 st.error(f"❌ Hata: {e}")
@@ -178,6 +178,6 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Footer
 st.markdown("""
 <div class='footer'>
-    Made with ❤️ by Nida | NL → SQL MVP v1
+    Made with ❤️ by Nida
 </div>
 """, unsafe_allow_html=True)
