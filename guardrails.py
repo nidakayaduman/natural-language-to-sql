@@ -67,12 +67,12 @@ def validate_sql(sql: str):
 
     # 6. Segment doğrulama (YANLIŞ girilenleri yakala)
     for lit in parsed.find_all("Literal"):
-        # Sadece string literal olanlara bak
-        if isinstance(lit.this, str):
-            if "SEGMENT" in sql_upper and lit.this not in ALLOWED_SEGMENTS:
+        value = str(lit.this).strip("'\"")
+        if "SEGMENT" in sql_upper and value not in ALLOWED_SEGMENTS:
                 raise ValueError(
                     f"❌ Segment değeri geçersiz! Geçerli segmentler: {ALLOWED_SEGMENTS}"
                 )
+
 
     # 7. credit_tier doğrulama (1 ile 5 arasında olmalı)
     if "CREDIT_TIER" in sql_upper:
