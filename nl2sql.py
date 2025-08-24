@@ -1,9 +1,8 @@
 import os
 import openai
 from dotenv import load_dotenv
-from guardrails import validate_sql
+from guardrails import validate_sql, fix_segments  # fix_segments ekledik
 from runner import SQLRunner
-
 
 # .env dosyasindaki API key'i yukle
 load_dotenv()
@@ -12,73 +11,66 @@ openai.api_base = "https://openrouter.ai/api/v1"
 
 # Sistem mesaji
 SYSTEM_PROMPT = """\
-Sen yalnizca izinli sema uzerinde guvenli SQL SELECT sorgulari ureten bir NL→SQL yardimcisisin.
-Kullanici Turkce sorular sorar, sen yalnizca SQL cevabi uretirsin. Aciklama yapma.
-Izinli tablolar ve kolonlar:
+Sen yalnızca izinli şema üzerinde güvenli SQL SELECT sorguları üreten bir NL→SQL yardımcısısın.
+Kullanıcı Türkçe sorular sorar, sen yalnızca SQL cevabı üretirsin. Açıklama yapma.
+
+İzinli tablolar ve kolonlar:
 - customers(customer_id, city, segment, credit_tier, income)
 - sales(customer_id, month, purchases, amount)
 
 Kurallar:
-- Sadece SELECT sorgusu uret.
+- Sadece SELECT sorgusu üret.
 - LIMIT 1000 ekle (zorunlu).
-- month alani YYYY-MM formatindadir.
+- month alanı YYYY-MM formatındadır.
 - JOIN gerektiginde kullanilmalidir.
-- Sorgunun sonunda ; olmalidir.
-- Tarih filtrelerinde month alanina gore yil bazli filtre istenirken LIKE 'YYYY-%' kalibini kullan.
+- Sorgunun sonunda ; olmalı.
+- Tarih filtrelerinde month alanına göre yıl bazlı filtre istenirken LIKE 'YYYY-%' kalıbını kullan.
+- segment alanı YALNIZCA şu değerlerden biri olabilir: 'Bireysel', 'KOBI', 'Kurumsal'.
+- Eğer kullanıcı başka bir şey derse, uygun Türkçe değeri otomatik eşleştir:
+    'Corporate' → 'Kurumsal'
+    'Individual' → 'Bireysel'
+    'SME' → 'KOBI'
+- credit_tier yalnızca 1, 2, 3, 4 veya 5 olabilir.
+- income numeric tipindedir, string olarak kullanılmaz.
+- Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
 """
 
 # Ornek promptlar
 FEW_SHOT_EXAMPLES = """
-Kullanici: Son 6 ayda sehir bazinda toplam ciro nedir? Ilk 10'u sirala.
+Kullanici: Kurumsal musterilerin toplam harcamasını şehir bazında göster.
 Assistant:
-SELECT c.city, SUM(s.amount) AS total_amount
+SELECT c.city, SUM(s.amount) AS total_spending
 FROM sales s
 JOIN customers c ON s.customer_id = c.customer_id
-WHERE s.month >= '2024-03'
+WHERE c.segment = 'Kurumsal'
 GROUP BY c.city
-ORDER BY total_amount DESC
-LIMIT 10;
-
-Kullanici: Segment ve kredi skoruna gore ortalama sepet tutarini goster.
-Assistant:
-SELECT c.segment, c.credit_tier, AVG(s.amount) AS avg_basket
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
-GROUP BY c.segment, c.credit_tier
+ORDER BY total_spending DESC
 LIMIT 1000;
 
-Kullanici: Istanbul'daki musterilerin aylik ciro trendi nedir?
+Kullanici: KOBI musterilerin ortalama alışveriş tutarı nedir?
 Assistant:
-SELECT s.month, SUM(s.amount) AS total_amount
+SELECT AVG(s.amount) AS avg_spending
 FROM sales s
 JOIN customers c ON s.customer_id = c.customer_id
-WHERE c.city = 'Istanbul'
+WHERE c.segment = 'KOBI'
+LIMIT 1000;
+
+Kullanici: Bireysel musterilerin satın alma sayısını aylık bazda göster.
+Assistant:
+SELECT s.month, SUM(s.purchases) AS total_purchases
+FROM sales s
+JOIN customers c ON s.customer_id = c.customer_id
+WHERE c.segment = 'Bireysel'
 GROUP BY s.month
 ORDER BY s.month
 LIMIT 1000;
-
-Kullanici: Geliri 100 bin TL uzerindeki musterilerin ortalama alisveris sayisi nedir?
-Assistant:
-SELECT AVG(s.purchases) AS avg_purchases
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
-WHERE c.income > 100000
-LIMIT 1000;
-
-Kullanici: Her sehirdeki musteri sayisi nedir?
-Assistant:
-SELECT city, COUNT(*) AS total_customers
-FROM customers
-GROUP BY city
-ORDER BY total_customers DESC
-LIMIT 1000;
 """
 
-# Kullanicinin sorusunu prompt'a ekler
+# Kullanıcı sorusunu prompt'a ekler
 def build_prompt(user_question: str) -> str:
     return FEW_SHOT_EXAMPLES + f"\nKullanici: {user_question}\nAssistant:\n"
 
-# OpenAI ile SQL uretir
+# OpenAI ile SQL üretir
 def generate_sql(user_question: str) -> str:
     prompt = build_prompt(user_question)
     response = openai.ChatCompletion.create(
@@ -91,6 +83,9 @@ def generate_sql(user_question: str) -> str:
     )
 
     sql = response["choices"][0]["message"]["content"].strip()
+
+    # Önce segment düzeltmesini uygula
+    sql = fix_segments(sql)
 
     # Guardrails ile SQL doğrulaması
     try:

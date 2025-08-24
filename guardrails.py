@@ -1,5 +1,22 @@
 import sqlglot
 
+ALLOWED_SEGMENTS = {
+    "corporate": "Kurumsal",
+    "individual": "Bireysel",
+    "sme": "KOBI",
+    "kobi": "KOBI",
+    "kurumsal": "Kurumsal",
+    "bireysel": "Bireysel"
+}
+
+def fix_segments(sql: str) -> str:
+    """SQL içindeki yanlış segmentleri Türkçeye çevirir"""
+    for wrong, correct in ALLOWED_SEGMENTS.items():
+        sql = sql.replace(f"'{wrong}'", f"'{correct}'")
+        sql = sql.replace(f'"{wrong}"', f"'{correct}'")
+        sql = sql.replace(f"'{wrong.capitalize()}'", f"'{correct}'")
+    return sql
+
 def validate_sql(sql: str):
     """
     SQL güvenlik kuralları:
@@ -7,6 +24,8 @@ def validate_sql(sql: str):
     2. LIMIT 1000 zorunlu.
     3. DROP, DELETE, UPDATE, INSERT yasak.
     4. Sadece izinli tablolar kullanılabilir.
+    5. segment yalnızca 'Bireysel', 'KOBI', 'Kurumsal' olabilir.
+    6. credit_tier yalnızca 1–5 arası olabilir.
     """
     try:
         # 1. SELECT kontrolü
