@@ -143,6 +143,36 @@ user_input = st.text_area(
     value=st.session_state.user_input_value
 )
 
+# 🔹 Otomatik Grafik Seçimi Fonksiyonu
+def auto_chart(df):
+    try:
+        # Eğer 'month' kolonunu içeriyorsa → line chart
+        if "month" in df.columns:
+            st.line_chart(df.set_index("month"))
+            return
+
+        # Kategorik + sayısal kolonları kontrol et
+        category_cols = [col for col in df.columns if df[col].dtype == 'object']
+        numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+
+        # Eğer kategori + sayısal kolon varsa → bar chart
+        if category_cols and len(numeric_cols) >= 1:
+            st.bar_chart(df.set_index(category_cols[0])[numeric_cols[0]])
+            return
+
+        # Sadece tek sayısal kolon varsa → bar chart
+        if len(numeric_cols) == 1:
+            st.bar_chart(df[numeric_cols[0]])
+            return
+
+        # Çoklu sayısal kolon varsa → line chart
+        if len(numeric_cols) > 1:
+            st.line_chart(df[numeric_cols])
+            return
+
+    except Exception as e:
+        st.warning(f"Grafik oluşturulamadı: {e}")
+
 # Buton ve sonuç
 if st.button("Cevabı Göster"):
     if not user_input.strip():
@@ -164,11 +194,8 @@ if st.button("Cevabı Göster"):
                     st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
                     st.dataframe(result_df, use_container_width=True)
 
-                    # Grafik ekle
-                    numeric_cols = result_df.select_dtypes(include=['int64', 'float64']).columns
-                    if len(numeric_cols) >= 1:
-                        first_num_col = numeric_cols[0]
-                        st.bar_chart(result_df.set_index(result_df.columns[0])[first_num_col])
+                    # Otomatik grafik çiz
+                    auto_chart(result_df)
 
             except Exception as e:
                 st.error(f"❌ Hata: {e}")
