@@ -84,7 +84,7 @@ def generate_sql(user_question: str, model_choice: str) -> str:
     prompt = build_prompt(user_question)
 
     # Ollama modeli (Mistral veya LLaMA3)
-    if model_choice in ["Mistral (Ollama)", "LLaMA3 (Ollama)"]:
+    if model_choice in ["Mistral (Ollama)"]:
         model_name = "mistral" if "Mistral" in model_choice else "llama3"
         try:
             response = requests.post(
@@ -142,13 +142,3 @@ def answer_user_question(user_question: str, model_choice: str):
         return sql, df
     finally:
         runner.close()
-
-# Konsol test ortamı
-if __name__ == "__main__":
-    while True:
-        q = input("Soru (çıkmak için q): ")
-        if q.lower() == "q":
-            break
-        sql = generate_sql(q, "LLaMA3 (Ollama)")
-        print("\nÜretilen SQL:\n", sql)
-        print("-" * 80)

@@ -120,7 +120,7 @@ st.markdown("<div class='subtitle-text'>Verilerinizi anlamak için sorunuzu yaz�
 st.markdown("### Model Seçimi")
 model_choice = st.selectbox(
     "Kullanmak istediğiniz modeli seçin:",
-    ["Gemma (OpenRouter)", "Mistral (Ollama)", "LLaMA3 (Ollama)"]
+    ["Gemma (OpenRouter)", "Mistral (Ollama)"]
 )
 st.session_state.model_choice = model_choice
 
