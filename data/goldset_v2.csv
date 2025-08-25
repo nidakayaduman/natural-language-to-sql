@@ -1,11 +1,5 @@
-import pandas as pd
-import os
-
-data = [
-    # 1
-    {
-        "question": "Son 6 ayda şehir bazında toplam ciro nedir? İlk 10’u sırala.",
-        "expected_sql": """
+question,expected_sql
+Son 6 ayda şehir bazında toplam ciro nedir? İlk 10’u sırala.,"
             SELECT c.city, SUM(s.amount) AS total_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
@@ -13,23 +7,15 @@ data = [
             GROUP BY c.city
             ORDER BY total_amount DESC
             LIMIT 1000;
-        """
-    },
-    # 2
-    {
-        "question": "Segment ve kredi skoruna göre ortalama sepet tutarını göster.",
-        "expected_sql": """
+        "
+Segment ve kredi skoruna göre ortalama sepet tutarını göster.,"
             SELECT c.segment, c.credit_tier, AVG(s.amount) AS avg_basket
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.segment, c.credit_tier
             LIMIT 1000;
-        """
-    },
-    # 3
-    {
-        "question": "İstanbul’daki müşterilerin aylık ciro trendi nedir?",
-        "expected_sql": """
+        "
+İstanbul’daki müşterilerin aylık ciro trendi nedir?,"
             SELECT s.month, SUM(s.amount) AS total_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
@@ -37,23 +23,15 @@ data = [
             GROUP BY s.month
             ORDER BY s.month
             LIMIT 1000;
-        """
-    },
-    # 4
-    {
-        "question": "Geliri 100 bin TL üzerindeki müşterilerin ortalama alışveriş sayısı nedir?",
-        "expected_sql": """
+        "
+Geliri 100 bin TL üzerindeki müşterilerin ortalama alışveriş sayısı nedir?,"
             SELECT AVG(s.purchases) AS avg_purchases
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             WHERE c.income > 100000
             LIMIT 1000;
-        """
-    },
-    # 5
-    {
-        "question": "Tier 4 ve 5 müşterilerin segment bazında en çok harcama yaptığı ilk 3 şehri göster.",
-        "expected_sql": """
+        "
+Tier 4 ve 5 müşterilerin segment bazında en çok harcama yaptığı ilk 3 şehri göster.,"
             SELECT c.city, c.segment, SUM(s.amount) AS total_spending
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
@@ -61,198 +39,126 @@ data = [
             GROUP BY c.city, c.segment
             ORDER BY total_spending DESC
             LIMIT 1000;
-        """
-    },
-    # 6
-    {
-        "question": "2023 yılında toplam alışveriş sayısı nedir?",
-        "expected_sql": """
+        "
+2023 yılında toplam alışveriş sayısı nedir?,"
             SELECT SUM(s.purchases) AS total_purchases
             FROM sales s
             WHERE s.month LIKE '2023-%'
             LIMIT 1000;
-        """
-    },
-    # 7
-    {
-        "question": "Antalya’daki müşterilerin ortalama geliri ne kadar?",
-        "expected_sql": """
+        "
+Antalya’daki müşterilerin ortalama geliri ne kadar?,"
             SELECT AVG(income) AS avg_income
             FROM customers
             WHERE city = 'Antalya'
             LIMIT 1000;
-        """
-    },
-    # 8
-    {
-        "question": "Her segmentin toplam harcama tutarı nedir?",
-        "expected_sql": """
+        "
+Her segmentin toplam harcama tutarı nedir?,"
             SELECT c.segment, SUM(s.amount) AS total_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.segment
             LIMIT 1000;
-        """
-    },
-    # 9
-    {
-        "question": "Aylara göre toplam ciro değişimi nedir?",
-        "expected_sql": """
+        "
+Aylara göre toplam ciro değişimi nedir?,"
             SELECT s.month, SUM(s.amount) AS total_amount
             FROM sales s
             GROUP BY s.month
             ORDER BY s.month
             LIMIT 1000;
-        """
-    },
-    # 10
-    {
-        "question": "2024 yılında İstanbul'daki toplam alışveriş sayısı kaç?",
-        "expected_sql": """
+        "
+2024 yılında İstanbul'daki toplam alışveriş sayısı kaç?,"
             SELECT SUM(s.purchases) AS total_purchases
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             WHERE c.city = 'Istanbul' AND s.month LIKE '2024-%'
             LIMIT 1000;
-        """
-    },
-    # 11
-    {
-        "question": "En yüksek ortalama harcamaya sahip 5 şehir nedir?",
-        "expected_sql": """
+        "
+En yüksek ortalama harcamaya sahip 5 şehir nedir?,"
             SELECT c.city, AVG(s.amount) AS avg_spending
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.city
             ORDER BY avg_spending DESC
             LIMIT 1000;
-        """
-    },
-    # 12
-    {
-        "question": "Geliri 120.000 TL üstü olan müşterilerin şehir dağılımı nedir?",
-        "expected_sql": """
+        "
+Geliri 120.000 TL üstü olan müşterilerin şehir dağılımı nedir?,"
             SELECT city, COUNT(*) AS customer_count
             FROM customers
             WHERE income > 120000
             GROUP BY city
             ORDER BY customer_count DESC
             LIMIT 1000;
-        """
-    },
-    # 13
-    {
-        "question": "Ankara’daki Tier 5 müşterilerin ortalama harcaması nedir?",
-        "expected_sql": """
+        "
+Ankara’daki Tier 5 müşterilerin ortalama harcaması nedir?,"
             SELECT AVG(s.amount) AS avg_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             WHERE c.city = 'Ankara' AND c.credit_tier = 5
             LIMIT 1000;
-        """
-    },
-    # 14
-    {
-        "question": "Her şehirdeki müşteri sayısı nedir?",
-        "expected_sql": """
+        "
+Her şehirdeki müşteri sayısı nedir?,"
             SELECT city, COUNT(*) AS total_customers
             FROM customers
             GROUP BY city
             ORDER BY total_customers DESC
             LIMIT 1000;
-        """
-    },
-    # 15
-    {
-        "question": "Aylık ortalama alışveriş sayısı nedir?",
-        "expected_sql": """
+        "
+Aylık ortalama alışveriş sayısı nedir?,"
             SELECT s.month, AVG(s.purchases) AS avg_purchases
             FROM sales s
             GROUP BY s.month
             ORDER BY s.month
             LIMIT 1000;
-        """
-    },
-    # 16
-    {
-        "question": "Her segmentin yıllık toplam ciroyu 2024 için göster.",
-        "expected_sql": """
+        "
+Her segmentin yıllık toplam ciroyu 2024 için göster.,"
             SELECT c.segment, SUM(s.amount) AS total_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             WHERE s.month LIKE '2024-%'
             GROUP BY c.segment
             LIMIT 1000;
-        """
-    },
-    # 17
-    {
-        "question": "Geliri en yüksek 10 müşterinin şehir ve segment bilgisi nedir?",
-        "expected_sql": """
+        "
+Geliri en yüksek 10 müşterinin şehir ve segment bilgisi nedir?,"
             SELECT city, segment, income
             FROM customers
             ORDER BY income DESC
             LIMIT 1000;
-        """
-    },
-    # 18
-    {
-        "question": "Tier 1 müşterilerin toplam alışveriş adedi nedir?",
-        "expected_sql": """
+        "
+Tier 1 müşterilerin toplam alışveriş adedi nedir?,"
             SELECT SUM(s.purchases) AS total_purchases
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             WHERE c.credit_tier = 1
             LIMIT 1000;
-        """
-    },
-    # 19
-    {
-        "question": "2023 yılında toplam kaç müşteri alışveriş yaptı?",
-        "expected_sql": """
+        "
+2023 yılında toplam kaç müşteri alışveriş yaptı?,"
             SELECT COUNT(DISTINCT s.customer_id) AS total_customers
             FROM sales s
             WHERE s.month LIKE '2023-%'
             LIMIT 1000;
-        """
-    },
-    # 20
-    {
-        "question": "İzmir'deki müşterilerin ortalama kredi skoru kaçtır?",
-        "expected_sql": """
+        "
+İzmir'deki müşterilerin ortalama kredi skoru kaçtır?,"
             SELECT AVG(credit_tier) AS avg_credit_tier
             FROM customers
             WHERE city = 'Izmir'
             LIMIT 1000;
-        """
-    },
-    # 21
-    {
-        "question": "Her kredi skoru için ortalama harcama ne kadar?",
-        "expected_sql": """
+        "
+Her kredi skoru için ortalama harcama ne kadar?,"
             SELECT c.credit_tier, AVG(s.amount) AS avg_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.credit_tier
             ORDER BY c.credit_tier
             LIMIT 1000;
-        """
-    },
-    # 22
-    {
-        "question": "Müşterilerin yaşadığı şehir ve gelir ortalamasını sırala.",
-        "expected_sql": """
+        "
+Müşterilerin yaşadığı şehir ve gelir ortalamasını sırala.,"
             SELECT city, AVG(income) AS avg_income
             FROM customers
             GROUP BY city
             ORDER BY avg_income DESC
             LIMIT 1000;
-        """
-    },
-    # 23
-    {
-        "question": "2024'ün her ayında segment bazlı toplam ciroyu göster.",
-        "expected_sql": """
+        "
+2024'ün her ayında segment bazlı toplam ciroyu göster.,"
             SELECT s.month, c.segment, SUM(s.amount) AS total_amount
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
@@ -260,80 +166,52 @@ data = [
             GROUP BY s.month, c.segment
             ORDER BY s.month
             LIMIT 1000;
-        """
-    },
-    # 24
-    {
-        "question": "100 bin TL altı gelire sahip müşterilerin segment dağılımı nedir?",
-        "expected_sql": """
+        "
+100 bin TL altı gelire sahip müşterilerin segment dağılımı nedir?,"
             SELECT segment, COUNT(*) AS customer_count
             FROM customers
             WHERE income < 100000
             GROUP BY segment
             ORDER BY customer_count DESC
             LIMIT 1000;
-        """
-    },
-    # 25
-    {
-        "question": "Her müşterinin toplam alışveriş adedini ve harcamasını listele.",
-        "expected_sql": """
+        "
+Her müşterinin toplam alışveriş adedini ve harcamasını listele.,"
             SELECT customer_id, SUM(purchases) AS total_purchases, SUM(amount) AS total_amount
             FROM sales
             GROUP BY customer_id
             LIMIT 1000;
-        """
-    },
-    # 26
-    {
-        "question": "2024 yılında en çok harcama yapan ilk 5 müşteri kim?",
-        "expected_sql": """
+        "
+2024 yılında en çok harcama yapan ilk 5 müşteri kim?,"
             SELECT s.customer_id, SUM(s.amount) AS total_spent
             FROM sales s
             WHERE s.month LIKE '2024-%'
             GROUP BY s.customer_id
             ORDER BY total_spent DESC
             LIMIT 1000;
-        """
-    },
-    # 27
-    {
-        "question": "Her şehirde en çok harcama yapan müşteri kim?",
-        "expected_sql": """
+        "
+Her şehirde en çok harcama yapan müşteri kim?,"
             SELECT c.city, s.customer_id, SUM(s.amount) AS total_spent
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.city, s.customer_id
             ORDER BY c.city, total_spent DESC
             LIMIT 1000;
-        """
-    },
-    # 28
-    {
-        "question": "2023-2024 yıllarında toplam ciro karşılaştırması nedir?",
-        "expected_sql": """
+        "
+2023-2024 yıllarında toplam ciro karşılaştırması nedir?,"
             SELECT SUBSTR(s.month, 1, 4) AS year, SUM(s.amount) AS total_amount
             FROM sales s
             GROUP BY year
             ORDER BY year
             LIMIT 1000;
-        """
-    },
-    # 29
-    {
-        "question": "Her segment için müşteri başına ortalama harcama nedir?",
-        "expected_sql": """
+        "
+Her segment için müşteri başına ortalama harcama nedir?,"
             SELECT c.segment, AVG(s.amount) AS avg_spent
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
             GROUP BY c.segment
             LIMIT 1000;
-        """
-    },
-    # 30
-    {
-        "question": "Aynı şehirde yaşayan Tier 5 müşterilerin toplam harcaması nedir?",
-        "expected_sql": """
+        "
+Aynı şehirde yaşayan Tier 5 müşterilerin toplam harcaması nedir?,"
             SELECT c.city, SUM(s.amount) AS total_spent
             FROM sales s
             JOIN customers c ON s.customer_id = c.customer_id
@@ -341,12 +219,4 @@ data = [
             GROUP BY c.city
             ORDER BY total_spent DESC
             LIMIT 1000;
-        """
-    }
-]
-
-DATA_DIR = os.path.join(os.getcwd(), "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-
-df = pd.DataFrame(data)
-df.to_csv(os.path.join(DATA_DIR, "goldset_v2.csv"), index=False)
+        "
