@@ -16,7 +16,7 @@ tiktoken==0.7.0  # Token sayımı için (opsiyonel, ama faydalı)
 streamlit==1.38.0
 
 # Guardrails için
-sqlglot==25.2.1   # SQL parsing ve validation
+sqlglot==25.0.0   # SQL parsing ve validation
 regex==2024.7.24  # Bazı NLP regex işlemleri için
 
 # Görselleştirme
