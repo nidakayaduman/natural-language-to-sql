@@ -37,6 +37,8 @@ Kurallar:
 - credit_tier yalnızca 1, 2, 3, 4 veya 5 olabilir.
 - income numeric tipindedir, string olarak kullanılmaz.
 - Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
+- Kullanıcı bir şehir (city) belirtirse**, bu city mutlaka `WHERE` filtresine eklenmelidir.
+
 """
 
 # Örnek few-shot prompt'lar
