@@ -189,7 +189,7 @@ if st.button("Cevabı Göster"):
         with st.spinner("SQL üretiliyor ve çalıştırılıyor..."):
             try:
                 # 🔹 SQL + Sonuç DataFrame al
-                generated_sql, result_df = answer_user_question(user_input)
+                generated_sql, result_df = answer_user_question(user_input, model_choice)
 
                 if result_df is None:
                     st.error(generated_sql)  # Geçersiz SQL hatasını göster

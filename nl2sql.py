@@ -1,17 +1,19 @@
 import os
 import openai
+import requests
 from dotenv import load_dotenv
 from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
-
 from runner import SQLRunner
 
-
-# .env dosyasindaki API key'i yukle
+# .env dosyasındaki API key'i yükle
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.api_base = "https://openrouter.ai/api/v1"
 
-# Sistem mesaji
+# Ollama API endpoint
+OLLAMA_URL = "http://localhost:11434/api/chat"
+
+# Sistem mesajı
 SYSTEM_PROMPT = """\
 Sen yalnızca izinli şema üzerinde güvenli SQL SELECT sorguları üreten bir NL→SQL yardımcısısın.
 Kullanıcı Türkçe sorular sorar, sen yalnızca SQL cevabı üretirsin. Açıklama yapma.
@@ -37,7 +39,7 @@ Kurallar:
 - Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
 """
 
-# Örnek promptlar
+# Örnek few-shot prompt'lar
 FEW_SHOT_EXAMPLES = """
 Kullanici: Kurumsal musterilerin toplam harcamasını şehir bazında göster.
 Assistant:
@@ -68,15 +70,12 @@ ORDER BY s.month
 LIMIT 1000;
 """
 
-# Prompt'u hazırlar
+# Prompt inşası
 def build_prompt(user_question: str) -> str:
     return FEW_SHOT_EXAMPLES + f"\nKullanici: {user_question}\nAssistant:\n"
 
-# SQL üretir
-from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
-
-def generate_sql(user_question: str) -> str:
-    # Kullanıcı sorusu güvenli mi kontrol et
+# SQL üretimi
+def generate_sql(user_question: str, model_choice: str) -> str:
     try:
         detect_forbidden_keywords(user_question)
     except ValueError as e:
@@ -84,18 +83,42 @@ def generate_sql(user_question: str) -> str:
 
     prompt = build_prompt(user_question)
 
-    response = openai.ChatCompletion.create(
-        model="google/gemma-3-12b-it:free",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0
-    )
+    # Ollama modeli (Mistral veya LLaMA3)
+    if model_choice in ["Mistral (Ollama)", "LLaMA3 (Ollama)"]:
+        model_name = "mistral" if "Mistral" in model_choice else "llama3"
+        try:
+            response = requests.post(
+                OLLAMA_URL,
+                json={
+                    "model": model_name,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "stream": False
+                }
+            )
+            data = response.json()
+            sql = data["message"]["content"].strip()
+        except Exception as e:
+            return f"❌ Ollama hatası: {e}"
 
-    sql = response["choices"][0]["message"]["content"].strip()
+    # OpenRouter modeli (Gemma)
+    else:
+        try:
+            response = openai.ChatCompletion.create(
+                model="google/gemma-3-12b-it:free",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0
+            )
+            sql = response["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            return f"❌ OpenRouter hatası: {e}"
 
-    # Segment düzeltme
+    # Segment isimlerini düzelt
     sql = fix_segments(sql)
 
     # SQL güvenlik kontrolü
@@ -106,11 +129,10 @@ def generate_sql(user_question: str) -> str:
 
     return sql
 
-# Kullanıcı sorusunu çalıştırır → SQL + sonuç döner
-def answer_user_question(user_question: str):
-    sql = generate_sql(user_question)
+# Ana fonksiyon
+def answer_user_question(user_question: str, model_choice: str):
+    sql = generate_sql(user_question, model_choice)
 
-    # Guardrails hata dönerse
     if sql.startswith("❌"):
         return sql, None
 
@@ -121,12 +143,12 @@ def answer_user_question(user_question: str):
     finally:
         runner.close()
 
-# Konsol testi
+# Konsol test ortamı
 if __name__ == "__main__":
     while True:
         q = input("Soru (çıkmak için q): ")
         if q.lower() == "q":
             break
-        sql = generate_sql(q)
+        sql = generate_sql(q, "LLaMA3 (Ollama)")
         print("\nÜretilen SQL:\n", sql)
         print("-" * 80)
