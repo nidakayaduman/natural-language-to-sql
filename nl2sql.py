@@ -1,7 +1,8 @@
 import os
 import openai
 from dotenv import load_dotenv
-from guardrails import validate_sql, fix_segments
+from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
+
 from runner import SQLRunner
 
 
@@ -72,7 +73,15 @@ def build_prompt(user_question: str) -> str:
     return FEW_SHOT_EXAMPLES + f"\nKullanici: {user_question}\nAssistant:\n"
 
 # SQL üretir
+from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
+
 def generate_sql(user_question: str) -> str:
+    # Kullanıcı sorusu güvenli mi kontrol et
+    try:
+        detect_forbidden_keywords(user_question)
+    except ValueError as e:
+        return f"❌ Güvensiz soru: {e}"
+
     prompt = build_prompt(user_question)
 
     response = openai.ChatCompletion.create(
@@ -86,10 +95,10 @@ def generate_sql(user_question: str) -> str:
 
     sql = response["choices"][0]["message"]["content"].strip()
 
-    # Segment düzeltmesi uygula
+    # Segment düzeltme
     sql = fix_segments(sql)
 
-    # Guardrails doğrulaması
+    # SQL güvenlik kontrolü
     try:
         validate_sql(sql)
     except ValueError as e:

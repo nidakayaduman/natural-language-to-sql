@@ -4,6 +4,17 @@ import sqlparse
 ALLOWED_SEGMENTS = {"Bireysel", "KOBI", "Kurumsal"}
 ALLOWED_TABLES = {"CUSTOMERS", "SALES"}
 
+FORBIDDEN_KEYWORDS = ["sil", "ekle", "güncelle", "değiştir", "drop", "insert", "update", "alter"]
+
+def detect_forbidden_keywords(question: str):
+    """
+    Kullanıcıdan gelen soruda tehlikeli işlem kelimelerini tespit eder.
+    """
+    for keyword in FORBIDDEN_KEYWORDS:
+        if keyword.lower() in question.lower():
+            raise ValueError(f"❌ '{keyword}' işlemlerine izin verilmiyor!")
+
+
 def fix_segments(sql: str) -> str:
     """
     Yanlış yazılan segment isimlerini Türkçeye çevirir.
