@@ -113,8 +113,16 @@ st.markdown("""
 
 st.markdown("<div class='main'>", unsafe_allow_html=True)
 
-st.markdown("<div class='title-text'>Chat With Nida</div>", unsafe_allow_html=True)
+st.markdown("<div class='title-text'>Chat With Nida's Bot</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle-text'>Verilerinizi anlamak için sorunuzu yazın. Sistem sizin yerinize gerekli analizi oluştursun.</div>", unsafe_allow_html=True)
+
+# Model seçimi dropdown
+st.markdown("### Model Seçimi")
+model_choice = st.selectbox(
+    "Kullanmak istediğiniz modeli seçin:",
+    ["Gemma (OpenRouter)", "Mistral (Ollama)", "LLaMA3 (Ollama)"]
+)
+st.session_state.model_choice = model_choice
 
 # Örnek Sorgu Butonları
 st.markdown("#### Örnek Sorgular")
