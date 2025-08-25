@@ -1,0 +1,27 @@
+# Ana Çalışma Kütüphaneleri
+pandas==2.2.2
+numpy==1.26.4
+sqlparse==0.5.1
+duckdb==1.0.0
+pyyaml==6.0.1
+
+# Veri Üretimi & Sentetik Veri
+faker==24.9.0
+
+# Model ve NLP
+openai==1.37.0   # Eğer OpenAI API kullanıyorsan
+tiktoken==0.7.0  # Token sayımı için (opsiyonel, ama faydalı)
+
+# Streamlit UI
+streamlit==1.38.0
+
+# Guardrails için
+sqlglot==25.2.1   # SQL parsing ve validation
+regex==2024.7.24  # Bazı NLP regex işlemleri için
+
+# Görselleştirme
+matplotlib==3.9.1
+
+# Geliştirme Araçları (Opsiyonel ama önerilir)
+python-dotenv==1.0.1   # .env dosyasıyla API key yönetimi
+jupyter==1.0.0         # Notebook testleri için
