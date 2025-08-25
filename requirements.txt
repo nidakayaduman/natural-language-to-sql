@@ -9,7 +9,7 @@ pyyaml==6.0.1
 faker==24.9.0
 
 # Model ve NLP
-openai==1.37.0   # Eğer OpenAI API kullanıyorsan
+openai==0.28   # Eğer OpenAI API kullanıyorsan
 tiktoken==0.7.0  # Token sayımı için (opsiyonel, ama faydalı)
 
 # Streamlit UI
