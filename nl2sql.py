@@ -54,51 +54,44 @@ Kurallar:
 
 # Örnek few-shot prompt'lar
 FEW_SHOT_EXAMPLES = """
-Kullanici: Kurumsal musterilerin toplam harcamasını şehir bazında göster.
-Assistant:
+Kurumsal musterilerin toplam harcamasını şehir bazında göster.
 SELECT c.city, SUM(s.amount) AS total_spending
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
+FROM sales AS s
+JOIN customers AS c ON s.customer_id = c.customer_id
 WHERE c.segment = 'Kurumsal'
 GROUP BY c.city
 ORDER BY total_spending DESC
 LIMIT 1000;
 
-Kullanici: 2023 yılında yapılan toplam satışları getir.
-Assistant:
+2023 yılında yapılan toplam satışları getir.
 SELECT SUM(s.amount) AS total_sales
-FROM sales s
+FROM sales AS s
 WHERE SUBSTR(s.month, 1, 4) = '2023'
 LIMIT 1000;
 
-
-Kullanici: KOBI musterilerin ortalama alışveriş tutarı nedir?
-Assistant:
+KOBI musterilerin ortalama alışveriş tutarı nedir?
 SELECT AVG(s.amount) AS avg_spending
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
+FROM sales AS s
+JOIN customers AS c ON s.customer_id = c.customer_id
 WHERE c.segment = 'KOBI'
 LIMIT 1000;
 
-Kullanici: Bireysel musterilerin satın alma sayısını aylık bazda göster.
-Assistant:
+Bireysel musterilerin satın alma sayısını aylık bazda göster.
 SELECT s.month, SUM(s.purchases) AS total_purchases
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
+FROM sales AS s
+JOIN customers AS c ON s.customer_id = c.customer_id
 WHERE c.segment = 'Bireysel'
 GROUP BY s.month
-ORDER BY s.month
+ORDER BY s.month ASC
 LIMIT 1000;
 
-Kullanici: Her müşterinin toplam harcamasını getir.
-Assistant:
+Her müşterinin toplam harcamasını getir.
 SELECT c.customer_id, SUM(s.amount) AS total_spending
-FROM sales s
-JOIN customers c ON s.customer_id = c.customer_id
+FROM sales AS s
+JOIN customers AS c ON s.customer_id = c.customer_id
 GROUP BY c.customer_id
 ORDER BY total_spending DESC
 LIMIT 1000;
-
 """
 
 # Prompt inşası
