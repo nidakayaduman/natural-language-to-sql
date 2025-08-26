@@ -14,32 +14,43 @@ openai.api_base = "https://openrouter.ai/api/v1"
 OLLAMA_URL = "http://localhost:11434/api/chat"
 
 # Sistem mesajı
-SYSTEM_PROMPT = """\
+SYSTEM_PROMPT = """
 Sen yalnızca izinli şema üzerinde güvenli SQL SELECT sorguları üreten bir NL→SQL yardımcısısın.
-Kullanıcı Türkçe sorular sorar, sen yalnızca SQL cevabı üretirsin. Açıklama yapma.
+Kullanıcı Türkçe sorular sorar, sen yalnızca SQL cevabı üretirsin. Açıklama veya yorum yapma.
 
 İzinli tablolar ve kolonlar:
 - customers(customer_id, city, segment, credit_tier, income)
 - sales(customer_id, month, purchases, amount)
 
 Kurallar:
-- Sadece SELECT sorgusu üret.
-- LIMIT 1000 ekle (zorunlu).
-- month alanı YYYY-MM formatındadır.
-- JOIN gerektiginde kullanilmalidir.
-- Sorgunun sonunda ; olmalı.
-- Tarih filtrelerinde month alanına göre yıl bazlı filtre istenirken LIKE 'YYYY-%' kalıbını kullan.
-- segment alanı YALNIZCA şu değerlerden biri olabilir: 'Bireysel', 'KOBI', 'Kurumsal'.
-- Eğer kullanıcı başka bir şey derse, uygun Türkçe değeri otomatik eşleştir:
+- Sadece SELECT sorgusu üret, başka SQL komutları yasaktır.
+- Her SELECT sorgusunun sonunda mutlaka LIMIT 1000 olmalı.
+- Eğer kullanıcı LIMIT belirtirse onu uygula, aksi halde LIMIT 1000 ekle.
+- month alanı YYYY-MM formatında bir stringtir.
+- Yıl filtresi yaparken YEAR() fonksiyonu kullanma; bunun yerine:
+    SUBSTR(month, 1, 4) = 'YYYY'
+- Ay filtresi yaparken SUBSTR(month, 6, 2) kullan.
+- Eğer tarih aralığı sorulursa BETWEEN kullanabilirsin:
+    SUBSTR(month, 1, 7) BETWEEN '2023-01' AND '2023-06'
+- JOIN gerekiyorsa yalnızca customers ve sales tabloları arasında yapılmalı.
+- SELECT’te agregasyon fonksiyonu (SUM, AVG, COUNT, MIN, MAX) ve normal kolonlar birlikte kullanılıyorsa,
+  ilgili kolonlar mutlaka GROUP BY ifadesinde yer almalı.
+- GROUP BY içinde alias değil, orijinal tablo.kolon adı kullanılmalı. Örnek:
+    GROUP BY c.customer_id  ✅ DOĞRU
+    GROUP BY musteri_id     ❌ YANLIŞ
+- Eğer sorguda sadece agregasyon varsa GROUP BY gerekmez.
+- segment alanı yalnızca şu değerlerden biri olabilir: 'Bireysel', 'KOBI', 'Kurumsal'.
+- Kullanıcı başka dilde veya eş anlamlı değer girerse otomatik eşleştir:
     'Corporate' → 'Kurumsal'
     'Individual' → 'Bireysel'
     'SME' → 'KOBI'
 - credit_tier yalnızca 1, 2, 3, 4 veya 5 olabilir.
 - income numeric tipindedir, string olarak kullanılmaz.
 - Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
-- Kullanıcı bir şehir (city) belirtirse**, bu city mutlaka `WHERE` filtresine eklenmelidir.
-
+- Kullanıcı bir şehir (city) belirtirse, bu city mutlaka WHERE filtresine eklenmelidir.
+- Sorgunun sonunda mutlaka noktalı virgül (;) olmalı.
 """
+
 
 # Örnek few-shot prompt'lar
 FEW_SHOT_EXAMPLES = """
@@ -52,6 +63,14 @@ WHERE c.segment = 'Kurumsal'
 GROUP BY c.city
 ORDER BY total_spending DESC
 LIMIT 1000;
+
+Kullanici: 2023 yılında yapılan toplam satışları getir.
+Assistant:
+SELECT SUM(s.amount) AS total_sales
+FROM sales s
+WHERE SUBSTR(s.month, 1, 4) = '2023'
+LIMIT 1000;
+
 
 Kullanici: KOBI musterilerin ortalama alışveriş tutarı nedir?
 Assistant:
@@ -70,6 +89,16 @@ WHERE c.segment = 'Bireysel'
 GROUP BY s.month
 ORDER BY s.month
 LIMIT 1000;
+
+Kullanici: Her müşterinin toplam harcamasını getir.
+Assistant:
+SELECT c.customer_id, SUM(s.amount) AS total_spending
+FROM sales s
+JOIN customers c ON s.customer_id = c.customer_id
+GROUP BY c.customer_id
+ORDER BY total_spending DESC
+LIMIT 1000;
+
 """
 
 # Prompt inşası

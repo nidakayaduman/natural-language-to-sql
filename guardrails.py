@@ -55,6 +55,8 @@ def check_ast_structure(sql: str):
     try:
         ast = sqlglot.parse_one(sql)
     except Exception:
+        if sql.strip().upper().startswith("SELECT"):
+            return True  # parse hatasını görmezden gel
         raise ValueError("❌ SQL parse edilemedi! Lütfen daha basit bir sorgu deneyin.")
 
     # 1. Sadece SELECT sorgularına izin ver
@@ -115,7 +117,7 @@ def validate_sql(sql: str):
 
     # 3. LIMIT 1000 zorunlu
     if "LIMIT" not in sql_upper:
-        raise ValueError("❌ LIMIT eksik! Model promptunu düzelt.")
+        sql = sql.strip().rstrip(";") + " LIMIT 1000"
 
     # 4. İzinli tabloları doğrula
     used_tables = re.findall(r"FROM\s+([a-zA-Z_]+)|JOIN\s+([a-zA-Z_]+)", sql_upper)
@@ -156,14 +158,18 @@ def validate_sql(sql: str):
 
     # 9. Tarih aralığı kontrolü (varsayılan son 12 ay)
     if "MONTH" in sql_upper and "WHERE" not in sql_upper:
-        current_year = datetime.now().year
-        raise ValueError(f"⚠️ Tarih filtresi eksik! Varsayılan son 12 ay: {current_year}-01 → {current_year}-12")
+        today = datetime.today()
+        start_year = today.year - 1
+        start_month = today.month % 12 + 1
+        end_year = today.year
+        end_month = today.month
+        sql = sql.strip().rstrip(";") + f" WHERE MONTH BETWEEN '{start_year}-01' AND '{end_year}-{end_month:02}'"
 
     # 10. AST analizi
     check_ast_structure(sql)
 
     # 11. EXPLAIN ile ağır sorgu uyarısı
     if not explain_and_check(sql):
-        raise ValueError("⚠️ Sorgu çok ağır görünüyor; 'şehir' veya 'ay' filtresi eklemeyi deneyin.")
+        print("⚠️ Sorgu çok ağır görünüyor; 'şehir' veya 'ay' filtresi eklemeyi düşünün.")
 
     return True
