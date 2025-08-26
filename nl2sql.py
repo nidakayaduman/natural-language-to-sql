@@ -48,6 +48,8 @@ Kurallar:
 - income numeric tipindedir, string olarak kullanılmaz.
 - Şema dışındaki hiçbir tablo veya kolon kullanılamaz.
 - Kullanıcı bir şehir (city) belirtirse, bu city mutlaka WHERE filtresine eklenmelidir.
+- Eğer kullanıcı segment belirtmezse segment filtresi koyma.
+- İngilizce segment isimlerini asla kullanma.
 - Sorgunun sonunda mutlaka noktalı virgül (;) olmalı.
 """
 

@@ -40,13 +40,48 @@ def fix_segments(sql: str) -> str:
         "sme": "KOBI",
         "kobi": "KOBI",
         "kurumsal": "Kurumsal",
-        "bireysel": "Bireysel"
+        "bireysel": "Bireysel",
+        "individuals": "Bireysel",
+        "corporates": "Kurumsal",
+        "smes": "KOBI",
+        "Individual": "Bireysel",
+        "İstanbul": "Istanbul",
+        "İzmir": "Izmir"
     }
     for wrong, correct in mapping.items():
         sql = sql.replace(f"'{wrong}'", f"'{correct}'")
         sql = sql.replace(f'"{wrong}"', f"'{correct}'")
         sql = sql.replace(f"'{wrong.capitalize()}'", f"'{correct}'")
     return sql
+
+# -------------------------
+# SQL Temizleme (NEW)
+# -------------------------
+def clean_sql(sql: str) -> str:
+    """
+    Modelden dönen SQL'i normalize eder:
+    - Fazladan boşlukları temizler
+    - Segment isimlerini düzeltir
+    - Küçük-büyük harfleri standart hale getirir
+    - LIMIT yoksa ekler
+    """
+    # 1. sqlparse ile temel formatlama
+    try:
+        formatted = sqlparse.format(sql, reindent=True, keyword_case="upper")
+    except Exception:
+        formatted = sql.strip()
+
+    # 2. Segmentleri normalize et
+    formatted = fix_segments(formatted)
+
+    # 3. LIMIT 1000 yoksa ekle
+    if "LIMIT" not in formatted.upper():
+        formatted = formatted.strip().rstrip(";") + " LIMIT 1000;"
+
+    # 4. Fazla noktalı virgülleri temizle
+    formatted = re.sub(r";+", ";", formatted)
+
+    return formatted
 
 # -------------------------
 # AST Analizi → SELECT, alt-sorgu, JOIN
