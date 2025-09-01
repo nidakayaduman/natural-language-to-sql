@@ -100,16 +100,15 @@ LIMIT 1000;
 def build_prompt(user_question: str) -> str:
     return FEW_SHOT_EXAMPLES + f"\nKullanici: {user_question}\nAssistant:\n"
 
-# SQL üretimi
 def generate_sql(user_question: str, model_choice: str) -> str:
     try:
         detect_forbidden_keywords(user_question)
     except ValueError as e:
-        return f"❌ Güvensiz soru: {e}"
+        return f"❌ Güvensiz ifade: {e}"
 
     prompt = build_prompt(user_question)
 
-    # Ollama modeli (Mistral veya LLaMA3)
+    # Ollama
     if model_choice in ["Mistral (Ollama)"]:
         model_name = "mistral" if "Mistral" in model_choice else "llama3"
         try:
@@ -129,7 +128,7 @@ def generate_sql(user_question: str, model_choice: str) -> str:
         except Exception as e:
             return f"❌ Ollama hatası: {e}"
 
-    # OpenRouter modeli (Gemma)
+    # OpenRouter
     else:
         try:
             response = openai.ChatCompletion.create(
@@ -144,14 +143,12 @@ def generate_sql(user_question: str, model_choice: str) -> str:
         except Exception as e:
             return f"❌ OpenRouter hatası: {e}"
 
-    # Segment isimlerini düzelt
     sql = fix_segments(sql)
 
-    # SQL güvenlik kontrolü
     try:
         validate_sql(sql)
     except ValueError as e:
-        return f"❌ Geçersiz SQL: {e}"
+        return f"❌ SQL doğrulama hatası: {e}"
 
     return sql
 

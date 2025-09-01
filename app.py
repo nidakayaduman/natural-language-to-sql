@@ -192,7 +192,12 @@ if st.button("Cevabı Göster"):
                 generated_sql, result_df = answer_user_question(user_input, model_choice)
 
                 if result_df is None:
-                    st.error(generated_sql)  # Geçersiz SQL hatasını göster
+                    st.markdown("### ❌ Hata Oluştu", unsafe_allow_html=True)
+                    st.error(generated_sql)
+
+                    with st.expander("Teknik Hata Detayı"):
+                        st.code(generated_sql, language="text")
+
                 else:
                     # SQL'i göster
                     st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
