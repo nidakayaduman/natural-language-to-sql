@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
 from runner import SQLRunner
 
+
 # .env dosyasındaki API key'i yükle
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -132,7 +133,7 @@ def generate_sql(user_question: str, model_choice: str) -> str:
     else:
         try:
             response = openai.ChatCompletion.create(
-                model="google/gemma-3-12b-it:free",
+                model="google/gemma-3-27b-it:free",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
@@ -141,7 +142,11 @@ def generate_sql(user_question: str, model_choice: str) -> str:
             )
             sql = response["choices"][0]["message"]["content"].strip()
         except Exception as e:
-            return f"❌ OpenRouter hatası: {e}"
+            import traceback
+            detailed_error = traceback.format_exc()
+            return f"❌ OpenRouter hatası:\n\n{detailed_error}"
+
+
 
     sql = fix_segments(sql)
 
@@ -156,7 +161,7 @@ def generate_sql(user_question: str, model_choice: str) -> str:
 def answer_user_question(user_question: str, model_choice: str):
     sql = generate_sql(user_question, model_choice)
 
-    if sql.startswith("❌"):
+    if isinstance(sql, str) and sql.startswith("❌"):
         return sql, None
 
     runner = SQLRunner()
