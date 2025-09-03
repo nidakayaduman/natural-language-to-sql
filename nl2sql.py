@@ -4,6 +4,7 @@ import requests
 from dotenv import load_dotenv
 from guardrails import validate_sql, fix_segments, detect_forbidden_keywords
 from runner import SQLRunner
+import re
 
 
 # .env dosyasındaki API key'i yükle
@@ -158,15 +159,52 @@ def generate_sql(user_question: str, model_choice: str) -> str:
     return sql
 
 # Ana fonksiyon
+import re
+from runner import SQLRunner
+
 def answer_user_question(user_question: str, model_choice: str):
     sql = generate_sql(user_question, model_choice)
 
-    if isinstance(sql, str) and sql.startswith("❌"):
-        return sql, None
-
     runner = SQLRunner()
+
+    # Varsayılan değerler
+    tables, columns, guardrail_errors, exec_time, df = [], [], "", 0, None
+    sql_text = ""
+
     try:
-        df = runner.execute_query(sql)
+        # Eğer model/guardrails hata döndürdüyse
+        if isinstance(sql, str) and sql.startswith("❌"):
+            guardrail_errors = sql
+
+        else:
+            # SQL üretildiyse çalıştırmayı dene
+            sql_text = sql
+            try:
+                df, exec_time = runner.execute_query(sql_text)
+
+                # tabloları regex ile bul
+                tables = re.findall(r"FROM\s+([a-zA-Z_]+)|JOIN\s+([a-zA-Z_]+)", sql_text, flags=re.IGNORECASE)
+                tables = {t for pair in tables for t in pair if t}
+                tables = list(tables)
+
+                # kolonları regex ile bul (tablo.kolon formatında)
+                columns = re.findall(r"[a-zA-Z_]+\.[a-zA-Z_]+", sql_text)
+                columns = list(set(columns))
+            except Exception as e:
+                # DB çalıştırma hatası
+                guardrail_errors = str(e)
+
+        # 🔹 Her durumda DuckDB logs tablosuna yaz
+        runner.log(
+            user_question=user_question,
+            tables=tables,
+            columns=columns,
+            sql=sql_text,
+            guardrail_errors=guardrail_errors,
+            exec_time=exec_time
+        )
+
         return sql, df
+
     finally:
         runner.close()

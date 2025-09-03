@@ -188,33 +188,60 @@ if st.button("Cevabı Göster"):
     else:
         with st.spinner("SQL üretiliyor ve çalıştırılıyor..."):
             try:
-                # 🔹 SQL + Sonuç DataFrame al
                 generated_sql, result_df = answer_user_question(user_input, model_choice)
-
-                if result_df is None:
-                    st.markdown("### ❌ Hata Oluştu", unsafe_allow_html=True)
-                    st.error(generated_sql)
-
-                    with st.expander("Teknik Hata Detayı"):
-                        st.code(generated_sql, language="text")
-
-                else:
-                    # SQL'i göster
-                    st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
-                    st.code(generated_sql, language="sql")
-
-                    # Tabloyu göster
-                    st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
-                    st.dataframe(result_df, use_container_width=True)
-
-                    # Otomatik grafik çiz
-                    auto_chart(result_df)
-
+                st.session_state.generated_sql = generated_sql
+                st.session_state.result_df = result_df
             except Exception as e:
+                st.session_state.generated_sql = None
+                st.session_state.result_df = None
                 st.error(f"❌ Hata: {e}")
+
+# 🔹 Sonucu gösterme kısmı (butondan ayrı)
+if "generated_sql" in st.session_state:
+    if st.session_state.result_df is None:
+        st.markdown("### ❌ Hata Oluştu", unsafe_allow_html=True)
+        st.error(st.session_state.generated_sql)
+        if st.session_state.generated_sql:
+            with st.expander("Teknik Hata Detayı"):
+                st.code(st.session_state.generated_sql, language="text")
+    else:
+        # SQL'i göster
+        st.markdown("<span style='color:#ff6e7f'><b>Oluşturulan SQL</b></span>", unsafe_allow_html=True)
+        st.code(st.session_state.generated_sql, language="sql")
+
+        # Tabloyu göster
+        st.markdown("<span style='color:#0097a7'><b>Sonuç</b></span>", unsafe_allow_html=True)
+        st.dataframe(st.session_state.result_df, use_container_width=True)
+
+        # Otomatik grafik çiz
+        auto_chart(st.session_state.result_df)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
+# Logları Göster ve İndir
+st.markdown("### Log Kayıtları")
+
+if st.button("Logları Göster"):
+    runner = SQLRunner()
+    try:
+        logs_df = runner.conn.execute("SELECT * FROM logs ORDER BY ts DESC").fetchdf()
+        if logs_df.empty:
+            st.info("Henüz hiç log kaydı yok.")
+        else:
+            st.dataframe(logs_df, use_container_width=True)
+
+            # İndirme butonu
+            csv_data = logs_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+            st.download_button(
+                label="⬇Logları CSV olarak indir",
+                data=csv_data,
+                file_name="logs.csv",
+                mime="text/csv"
+            )
+    except Exception as e:
+        st.error(f"❌ Loglar alınamadı: {e}")
+    finally:
+        runner.close()
 # Footer
 st.markdown("""
 <div class='footer'>
