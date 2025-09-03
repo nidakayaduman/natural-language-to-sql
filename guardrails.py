@@ -205,6 +205,6 @@ def validate_sql(sql: str):
 
     # 11. EXPLAIN ile ağır sorgu uyarısı
     if not explain_and_check(sql):
-        print("⚠️ Sorgu çok ağır görünüyor; 'şehir' veya 'ay' filtresi eklemeyi düşünün.")
+        raise ValueError("⚠️ Sorgu çok ağır görünüyor; 'şehir' veya 'ay' filtresi eklemeyi düşünün.")
 
     return True
