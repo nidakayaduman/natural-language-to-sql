@@ -126,7 +126,7 @@ st.session_state.model_choice = model_choice
 
 # Örnek Sorgu Butonları
 st.markdown("#### Örnek Sorgular")
-col1, col2, col3 = st.columns(3)
+col1,  col3 = st.columns(2)
 
 if "user_input_value" not in st.session_state:
     st.session_state.user_input_value = ""
@@ -134,10 +134,6 @@ if "user_input_value" not in st.session_state:
 with col1:
     if st.button("Ankara Bireysel"):
         st.session_state.user_input_value = "Ankara'daki bireysel müşterilerin toplam harcaması"
-
-with col2:
-    if st.button("6 Ayda En Çok Harcayan Şehir"):
-        st.session_state.user_input_value = "Son 6 ayda en çok harcama yapan şehir hangisi?"
 
 with col3:
     if st.button("Kurumsal Harcama Dağılımı"):
